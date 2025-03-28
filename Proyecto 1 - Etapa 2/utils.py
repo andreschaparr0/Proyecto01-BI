@@ -182,12 +182,14 @@ def FiltrarTexto(df):
 
 def entrenar_modelo():
     # Cargar los datos
-    df = pd.read_excel("tokens_combinados_label.xlsx")
+    EXCEL_PATH = "tokens_combinados_label.xlsx"
+    df = pd.read_excel(EXCEL_PATH)
 
     # Descomentar en caso de que se quiera reducir los datos de
     # entrenamiento para que no dure tanto el entrenamiento
 
-    df = df.iloc[: len(df) // 5]
+    df = df.iloc[: len(df) // 10]
+    df.to_excel(EXCEL_PATH, index=False)
 
     # Filtrar y preparar datos
     x_data = FiltrarTexto(df)
@@ -231,4 +233,4 @@ def entrenar_modelo():
 
 
 # Descomentar y correr por primera vez para que se carguen los modelos en el directorio actual
-# entrenar_modelo()
+entrenar_modelo()
