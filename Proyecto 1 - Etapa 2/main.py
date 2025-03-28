@@ -62,38 +62,57 @@ def make_predictions(data: Union[DataModel, list[DataModel]]):
 
 # Endpoint para reentrenar el modelo
 @app.post("/train")
-def make_train_again(train_data: list[TrainDataModel]):
+def make_train_again(
+    train_data: list[TrainDataModel],
+):  # Recibe una lista de TrainDataModel
     try:
-        df_nuevo = pd.DataFrame([item.dict() for item in train_data])
 
-        # Guardar pero NO usar el histórico para reentrenar
+        df_nuevo = pd.DataFrame([item.dict() for item in train_data])
+        columnas_comunes = df_original.columns.intersection(df_nuevo.columns)
+        df_nuevo = df_nuevo[columnas_comunes]
         df_actualizado = pd.concat([df_original, df_nuevo], ignore_index=True)
         df_actualizado.to_excel(EXCEL_PATH, index=False)
+
+        x_original = FiltrarTexto(df_original)
+        y_original = df_original["Label"]
 
         x_nuevo = FiltrarTexto(df_nuevo)
         y_nuevo = df_nuevo["Label"]
 
-        texto_vectorizado = vectorizer.transform(x_nuevo)
+        x_completo = x_original + x_nuevo
+        y_completo = pd.concat([y_original, y_nuevo], ignore_index=True)
+
+        texto_vectorizado_completo = vectorizer.transform(x_completo)
+
+        if len(x_completo) != len(y_completo):
+            raise ValueError("El número de textos y etiquetas no coincide.")
 
         X_train, X_test, y_train, y_test = train_test_split(
-            texto_vectorizado, y_nuevo, test_size=0.2, random_state=42
+            texto_vectorizado_completo, y_completo, test_size=0.2, random_state=42
         )
 
         model.fit(X_train, y_train)
         dump(model, MODEL_PATH)
         dump(vectorizer, VECTORIZER_PATH)
 
+        # Hacer predicciones en el conjunto de prueba
         y_pred = model.predict(X_test)
+
+        # Calcular métri~cas
+        accuracy = accuracy_score(y_test, y_pred)
+        precision = precision_score(y_test, y_pred, average="weighted")
+        recall = recall_score(y_test, y_pred, average="weighted")
+        f1 = f1_score(y_test, y_pred, average="weighted")
+
         return {
-            "message": "Modelo reentrenado con nuevos datos",
+            "message": "Modelo reentrenado correctamente",
             "metrics": {
-                "accuracy": accuracy_score(y_test, y_pred),
-                "precision": precision_score(y_test, y_pred, average="weighted"),
-                "recall": recall_score(y_test, y_pred, average="weighted"),
-                "f1_score": f1_score(y_test, y_pred, average="weighted"),
+                "accuracy": accuracy,
+                "precision": precision,
+                "recall": recall,
+                "f1_score": f1,
             },
         }
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
