@@ -5,9 +5,12 @@ from joblib import load
 import uvicorn
 from utils import FiltrarTexto
 from joblib import dump
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from sklearn.model_selection import train_test_split
 from typing import Union
+import streamlit as st
+import json
+import requests
 
 # Cargar el modelo previamente entrenado y exportado
 
@@ -51,7 +54,8 @@ def make_predictions(data: Union[DataModel, list[DataModel]]):
             data = [data]
 
         df = pd.DataFrame([item.dict() for item in data])
-        texto = FiltrarTexto(df)
+        texto, sobra = FiltrarTexto(df)
+        print(texto)	
         texto_vectorizado = vectorizer.transform(texto)
         result = model.predict(texto_vectorizado)
         return {"predictions": result.tolist()}
@@ -73,11 +77,9 @@ def make_train_again(
         df_actualizado = pd.concat([df_original, df_nuevo], ignore_index=True)
         df_actualizado.to_excel(EXCEL_PATH, index=False)
 
-        x_original = FiltrarTexto(df_original)
-        y_original = df_original["Label"]
+        x_original, y_original = FiltrarTexto(df_original)
 
-        x_nuevo = FiltrarTexto(df_nuevo)
-        y_nuevo = df_nuevo["Label"]
+        x_nuevo, y_nuevo = FiltrarTexto(df_nuevo)
 
         x_completo = x_original + x_nuevo
         y_completo = pd.concat([y_original, y_nuevo], ignore_index=True)
@@ -103,7 +105,6 @@ def make_train_again(
         precision = precision_score(y_test, y_pred, average="weighted")
         recall = recall_score(y_test, y_pred, average="weighted")
         f1 = f1_score(y_test, y_pred, average="weighted")
-
         return {
             "message": "Modelo reentrenado correctamente",
             "metrics": {
@@ -111,10 +112,11 @@ def make_train_again(
                 "precision": precision,
                 "recall": recall,
                 "f1_score": f1,
-            },
+            }
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 if __name__ == "__main__":

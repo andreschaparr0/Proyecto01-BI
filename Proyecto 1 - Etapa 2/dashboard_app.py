@@ -309,13 +309,20 @@ def reentrenar_modelo(n_clicks, raw_json):
         data = json.loads(raw_json)
         response = requests.post("http://127.0.0.1:8000/train", json=data)
         result = response.json()
+
         if "metrics" in result:
+            metrics = result["metrics"]
             return (
                 f"✅ Reentrenamiento completo.\n"
-                f"Accuracy: {result['metrics']['accuracy']:.2f} | "
-                f"F1-score: {result['metrics']['f1_score']:.2f}"
+                f"📊 Métricas del modelo:\n"
+                f"  - 🎯 Accuracy: {metrics['accuracy']:.2f}\n"
+                f"  - 🎭 Precision: {metrics['precision']:.2f}\n"
+                f"  - 🔄 Recall: {metrics['recall']:.2f}\n"
+                f"  - ⚖️ F1-score: {metrics['f1_score']:.2f}"
             )
+
         return f"⚠️ Respuesta inesperada: {result}"
+    
     except Exception as e:
         return f"❌ Error en el reentrenamiento: {str(e)}"
 

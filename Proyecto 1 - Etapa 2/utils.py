@@ -172,12 +172,15 @@ def FiltrarTexto(df):
     )
     texto["Tokens_Combinados_Sin_Ruido"] = texto["Tokens_Combinados_Sin_Ruido"].apply(
         lambda x: sorted(set(x), key=x.index)
-    )
+    )        
     x_datos = texto["Tokens_Combinados_Sin_Ruido"]
     x_datos_text = [
         " ".join(words) if isinstance(words, list) else str(words) for words in x_datos
     ]
-    return x_datos_text
+    if "Label" in texto.columns:
+        return x_datos_text, texto["Label"]
+    else:
+        return x_datos_text, [0]
 
 
 def entrenar_modelo():
@@ -192,10 +195,9 @@ def entrenar_modelo():
     df.to_excel(EXCEL_PATH, index=False)
 
     # Filtrar y preparar datos
-    x_data = FiltrarTexto(df)
+    x_data, y_data = FiltrarTexto(df)
     vectorizer = CountVectorizer(binary=True)
     x_data = vectorizer.fit_transform(x_data)
-    y_data = df["Label"]
 
     # Dividir en conjunto de entrenamiento y prueba (90%-10%)
     x_train, x_test, y_train, y_test = train_test_split(
@@ -233,4 +235,4 @@ def entrenar_modelo():
 
 
 # Descomentar y correr por primera vez para que se carguen los modelos en el directorio actual
-entrenar_modelo()
+# entrenar_modelo()
