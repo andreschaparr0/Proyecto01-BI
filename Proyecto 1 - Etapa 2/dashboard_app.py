@@ -331,10 +331,10 @@ def reentrenar_modelo(n_clicks, contents, filename, last_modified):
             return (
                 f"✅ Reentrenamiento completo.\n"
                 f"📊 Métricas del modelo:\n"
-                f"  - 🎯 Accuracy: {metrics['accuracy']:.2f}\n"
-                f"  - 🎭 Precision: {metrics['precision']:.2f}\n"
-                f"  - 🔄 Recall: {metrics['recall']:.2f}\n"
-                f"  - ⚖️ F1-score: {metrics['f1_score']:.2f}"
+                f"  -  Accuracy: {metrics['accuracy']:.2f}\n"
+                f"  -  Precision: {metrics['precision']:.2f}\n"
+                f"  -  Recall: {metrics['recall']:.2f}\n"
+                f"  -  F1-score: {metrics['f1_score']:.2f}"
             )
 
         return f"⚠️ Respuesta inesperada: {result}"
