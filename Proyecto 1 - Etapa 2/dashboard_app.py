@@ -1,6 +1,9 @@
+import base64
+import io
 import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
+import pandas as pd
 import requests
 import json
 
@@ -222,12 +225,14 @@ app.layout = html.Div(
                     style={"textAlign": "center", "color": "#333"},
                 ),
                 html.P(
-                    "Pega aquí un arreglo de objetos en formato JSON con noticias para predecir:",
+                    "Sube un excel con columnas ID, Titulo, Descripcion, fecha (2025-03-27):",
                     style={"color": "#555", "fontSize": "15px"},
                 ),
-                dcc.Textarea(
-                    id="multi-json-input",
-                    placeholder='[\n  {\n    "ID": "002",\n    "Titulo": "Ejemplo",\n    "Descripcion": "Texto...",\n    "Fecha": "2025-03-27"\n  }\n]',
+                dcc.Upload(
+                    id="upload-data",
+                    children=html.Button("Subir Archivo"),
+                    multiple=False,
+                    
                     style={
                         "width": "100%",
                         "height": "200px",
@@ -235,7 +240,7 @@ app.layout = html.Div(
                         "borderRadius": "5px",
                         "border": "1px solid #ccc",
                         "marginTop": "10px",
-                    },
+                    }
                 ),
                 html.Button(
                     "Predecir múltiples",
@@ -327,24 +332,48 @@ def reentrenar_modelo(n_clicks, raw_json):
         return f"❌ Error en el reentrenamiento: {str(e)}"
 
 
+import base64
+import io
+import pandas as pd
+import requests
+from dash.dependencies import Input, Output, State
+
 @app.callback(
     Output("multi-output", "children"),
     Input("multi-predict-button", "n_clicks"),
-    State("multi-json-input", "value"),
+    State("upload-data", "contents"),
+    State("upload-data", "filename"),
+    State("upload-data", "last_modified")
 )
-def predict_multiple(n_clicks, raw_json):
-    if n_clicks == 0 or not raw_json:
+def predict_multiple(n_clicks, contents, filename, last_modified):
+    if n_clicks is None or contents is None:
         return ""
+
     try:
-        data = json.loads(raw_json)
-        response = requests.post("http://127.0.0.1:8000/predict", json=data)
+        # Decodificar contenido del archivo
+        content_type, content_string = contents.split(",")
+        decoded = base64.b64decode(content_string)
+        
+        # Leer el archivo Excel
+        df = pd.read_excel(io.BytesIO(decoded))
+
+        # Enviar los datos al servidor
+        response = requests.post("http://127.0.0.1:8000/predict", json=df.to_dict(orient="records"))
+
+        if response.status_code != 200:
+            return f"❌ Error: {response.text}"
+
+        # Obtener predicciones
         result = response.json()
         predicciones = result.get("predictions", [])
+
+        # Generar salida
         salida = [
             f"📰 Noticia {i+1}: {'✅ Verdadera' if p == 1 else '❌ Falsa'}"
             for i, p in enumerate(predicciones)
         ]
-        return "\n".join(salida)
+        return html.Ul([html.Li(x) for x in salida])
+
     except Exception as e:
         return f"⚠️ Error: {str(e)}"
 
