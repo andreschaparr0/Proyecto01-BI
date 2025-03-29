@@ -179,12 +179,15 @@ app.layout = html.Div(
                     style={"textAlign": "center", "color": "#333"},
                 ),
                 html.P(
-                    "Pega aquí una lista en formato JSON con nuevas noticias y sus etiquetas (Label: 0 para falsa, 1 para verdadera):",
+                    "Sube el excel con las noticas para reentrenar el modelo. El excel debe"
+                    "tener las columnas ID, Titulo, Descripcion, fecha (2025-03-26) y Label (Label: 0 para falsa, 1 para verdadera):",
                     style={"color": "#555", "fontSize": "15px"},
                 ),
-                dcc.Textarea(
-                    id="train-json-input",
-                    placeholder='[\n  {\n    "ID": "001",\n    "Titulo": "Ejemplo",\n    "Descripcion": "Contenido",\n    "Fecha": "2025-03-27",\n    "Label": 1\n  }\n]',
+                dcc.Upload(
+                    id="upload-data2",
+                    children=html.Button("Subir Archivo"),
+                    multiple=False,
+                    
                     style={
                         "width": "100%",
                         "height": "200px",
@@ -192,7 +195,7 @@ app.layout = html.Div(
                         "borderRadius": "5px",
                         "border": "1px solid #ccc",
                         "marginTop": "10px",
-                    },
+                    }
                 ),
                 html.Button(
                     "Reentrenar modelo",
@@ -305,14 +308,22 @@ def update_prediction(n_clicks, titulo, descripcion):
 @app.callback(
     Output("train-output", "children"),
     Input("train-button", "n_clicks"),
-    State("train-json-input", "value"),
+    State("upload-data2", "contents"),
+    State("upload-data2", "filename"),
+    State("upload-data2", "last_modified")
 )
-def reentrenar_modelo(n_clicks, raw_json):
-    if n_clicks == 0 or not raw_json:
+def reentrenar_modelo(n_clicks, contents, filename, last_modified):
+    if n_clicks is None or contents is None:
         return ""
+
     try:
-        data = json.loads(raw_json)
-        response = requests.post("http://127.0.0.1:8000/train", json=data)
+        # Decodificar contenido del archivo
+        content_type, content_string = contents.split(",")
+        decoded = base64.b64decode(content_string)
+        
+        # Leer el archivo Excel
+        df = pd.read_excel(io.BytesIO(decoded))
+        response = requests.post("http://127.0.0.1:8000/train", json=df.to_dict(orient="records"))
         result = response.json()
 
         if "metrics" in result:
@@ -331,12 +342,6 @@ def reentrenar_modelo(n_clicks, raw_json):
     except Exception as e:
         return f"❌ Error en el reentrenamiento: {str(e)}"
 
-
-import base64
-import io
-import pandas as pd
-import requests
-from dash.dependencies import Input, Output, State
 
 @app.callback(
     Output("multi-output", "children"),
