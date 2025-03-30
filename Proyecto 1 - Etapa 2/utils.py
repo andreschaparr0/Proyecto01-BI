@@ -190,8 +190,8 @@ def entrenar_modelo():
 
     # Descomentar en caso de que se quiera reducir los datos de
     # entrenamiento para que no dure tanto el entrenamiento
-
-    df = df.iloc[: len(df) // 10]
+    #df = df.iloc[: len(df) // 10]
+    
     df.to_excel(EXCEL_PATH, index=False)
 
     # Filtrar y preparar datos
@@ -203,7 +203,6 @@ def entrenar_modelo():
     x_train, x_test, y_train, y_test = train_test_split(
         x_data, y_data, test_size=0.1, random_state=42
     )
-
     # Entrenar el modelo RandomForest
     modelo = RandomForestClassifier(n_estimators=200, max_depth=None, random_state=42)
     modelo.fit(x_train, y_train)
@@ -235,4 +234,4 @@ def entrenar_modelo():
 
 
 # Descomentar y correr por primera vez para que se carguen los modelos en el directorio actual
-# entrenar_modelo()
+entrenar_modelo()
